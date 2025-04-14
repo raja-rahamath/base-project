@@ -24,6 +24,12 @@ import {
   Tooltip,
   IconButton,
   Backdrop,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Card,
+  CardContent,
 } from "@mui/material";
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import StorageIcon from '@mui/icons-material/Storage';
@@ -35,6 +41,9 @@ import LockIcon from '@mui/icons-material/Lock';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import CheckIcon from '@mui/icons-material/Check';
 import config from "../config";
 
 // Debug configuration
@@ -42,31 +51,19 @@ console.log("ENV Variables:", import.meta.env);
 console.log("VITE_API_URL:", import.meta.env.VITE_API_URL);
 console.log("Config API URL:", config.apiUrl);
 
-// Default values for testing
-const defaultValues = {
-  dbType: "MySQL",
-  serviceIP: "localhost",
-  port: "3306",
-  dbName: "myapp",
-  rootUser: "root",
-  rootPassword: "rsquare-dev",
-  adminUser: "appadmin",
-  adminPassword: "admin123",
-};
-
 const InstallPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // Form state
-  const [dbType, setDbType] = useState(defaultValues.dbType);
-  const [serviceIP, setServiceIP] = useState(defaultValues.serviceIP);
-  const [port, setPort] = useState(defaultValues.port);
-  const [dbName, setDbName] = useState(defaultValues.dbName);
-  const [rootUser, setRootUser] = useState(defaultValues.rootUser);
-  const [rootPassword, setRootPassword] = useState(defaultValues.rootPassword);
-  const [adminUser, setAdminUser] = useState(defaultValues.adminUser);
-  const [adminPassword, setAdminPassword] = useState(defaultValues.adminPassword);
+  const [dbType, setDbType] = useState("MySQL");
+  const [serviceIP, setServiceIP] = useState("");
+  const [port, setPort] = useState("");
+  const [dbName, setDbName] = useState("");
+  const [rootUser, setRootUser] = useState("");
+  const [rootPassword, setRootPassword] = useState("");
+  const [adminUser, setAdminUser] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
   
   // Validation state
   const [ipError, setIpError] = useState("");
@@ -82,6 +79,10 @@ const InstallPage = () => {
   const [success, setSuccess] = useState("");
   const [activeStep, setActiveStep] = useState(0);
   const [completed, setCompleted] = useState({});
+  
+  // Password visibility toggles
+  const [showRootPassword, setShowRootPassword] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
 
   // Default port when DB type changes
   useEffect(() => {
@@ -285,6 +286,8 @@ const InstallPage = () => {
           !adminUserError && 
           !adminPasswordError
         );
+      case 4: // Confirmation
+        return true; // Always valid since it's just a review
       default:
         return false;
     }
@@ -383,7 +386,7 @@ const InstallPage = () => {
   };
 
   const resetForm = () => {
-    setDbType("");
+    setDbType("MySQL");
     setServiceIP("");
     setPort("");
     setDbName("");
@@ -411,6 +414,10 @@ const InstallPage = () => {
     {
       label: "Admin User Setup",
       description: "Set up the admin user and database",
+    },
+    {
+      label: "Confirmation",
+      description: "Review and confirm your settings",
     },
   ];
 
@@ -555,7 +562,7 @@ const InstallPage = () => {
               <TextField
                 fullWidth
                 label="Root Password"
-                type="password"
+                type={showRootPassword ? "text" : "password"}
                 value={rootPassword}
                 onChange={(e) => setRootPassword(e.target.value)}
                 placeholder="Enter root password"
@@ -563,6 +570,17 @@ const InstallPage = () => {
                   startAdornment: (
                     <InputAdornment position="start">
                       <LockIcon color="primary" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={() => setShowRootPassword(!showRootPassword)}
+                        edge="end"
+                      >
+                        {showRootPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      </IconButton>
                     </InputAdornment>
                   ),
                 }}
@@ -622,7 +640,7 @@ const InstallPage = () => {
               <TextField
                 fullWidth
                 label="Admin Password"
-                type="password"
+                type={showAdminPassword ? "text" : "password"}
                 value={adminPassword}
                 onChange={handleAdminPasswordChange}
                 error={!!adminPasswordError}
@@ -634,12 +652,184 @@ const InstallPage = () => {
                       <LockIcon color={adminPasswordError ? "error" : "primary"} />
                     </InputAdornment>
                   ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={() => setShowAdminPassword(!showAdminPassword)}
+                        edge="end"
+                      >
+                        {showAdminPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
                 }}
               />
             </Stack>
 
             <Alert severity="info" sx={{ mt: 4 }}>
               This user will have full permissions to the new database.
+            </Alert>
+          </Box>
+        );
+        
+      case 4: // Confirmation
+        return (
+          <Box sx={{ mt: 4 }}>
+            <Typography variant="h6" gutterBottom>
+              Confirm Database Setup
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Please review your settings before creating the database.
+            </Typography>
+            
+            <Card variant="outlined" sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+                  Database Details
+                </Typography>
+                <List dense>
+                  <ListItem>
+                    <ListItemIcon>
+                      <DatabaseIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary="Database Type" 
+                      secondary={dbType} 
+                      primaryTypographyProps={{ fontWeight: 500 }}
+                    />
+                  </ListItem>
+                  
+                  <ListItem>
+                    <ListItemIcon>
+                      <PublicIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary="Server" 
+                      secondary={serviceIP} 
+                      primaryTypographyProps={{ fontWeight: 500 }}
+                    />
+                  </ListItem>
+                  
+                  <ListItem>
+                    <ListItemIcon>
+                      <RouterIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary="Port" 
+                      secondary={port} 
+                      primaryTypographyProps={{ fontWeight: 500 }}
+                    />
+                  </ListItem>
+                  
+                  <ListItem>
+                    <ListItemIcon>
+                      <StorageIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary="Database Name" 
+                      secondary={dbName} 
+                      primaryTypographyProps={{ fontWeight: 500 }}
+                    />
+                  </ListItem>
+                </List>
+              </CardContent>
+            </Card>
+            
+            <Card variant="outlined" sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+                  Root Credentials
+                </Typography>
+                <List dense>
+                  <ListItem>
+                    <ListItemIcon>
+                      <PersonIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary="Root Username" 
+                      secondary={rootUser} 
+                      primaryTypographyProps={{ fontWeight: 500 }}
+                    />
+                  </ListItem>
+                  
+                  <ListItem>
+                    <ListItemIcon>
+                      <LockIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary="Root Password" 
+                      secondary={
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2" sx={{ mr: 1 }}>
+                            {showRootPassword ? rootPassword : '••••••••'}
+                          </Typography>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => setShowRootPassword(!showRootPassword)}
+                            sx={{ p: 0.5 }}
+                          >
+                            {showRootPassword ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                          </IconButton>
+                        </Box>
+                      } 
+                      primaryTypographyProps={{ fontWeight: 500 }}
+                    />
+                  </ListItem>
+                </List>
+              </CardContent>
+            </Card>
+            
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+                  Admin User Details
+                </Typography>
+                <List dense>
+                  <ListItem>
+                    <ListItemIcon>
+                      <PersonIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary="Admin Username" 
+                      secondary={adminUser} 
+                      primaryTypographyProps={{ fontWeight: 500 }}
+                    />
+                  </ListItem>
+                  
+                  <ListItem>
+                    <ListItemIcon>
+                      <LockIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary="Admin Password" 
+                      secondary={
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2" sx={{ mr: 1 }}>
+                            {showAdminPassword ? adminPassword : '••••••••'}
+                          </Typography>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => setShowAdminPassword(!showAdminPassword)}
+                            sx={{ p: 0.5 }}
+                          >
+                            {showAdminPassword ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                          </IconButton>
+                        </Box>
+                      } 
+                      primaryTypographyProps={{ fontWeight: 500 }}
+                    />
+                  </ListItem>
+                </List>
+              </CardContent>
+            </Card>
+            
+            <Alert severity="warning" sx={{ mt: 4 }}>
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>Important:</Typography>
+              <Typography variant="body2">
+                Creating a database will modify your database server. Please ensure your settings are correct.
+                This operation cannot be undone.
+              </Typography>
             </Alert>
           </Box>
         );
@@ -757,15 +947,13 @@ const InstallPage = () => {
                   variant="contained"
                   color="primary"
                   onClick={handleSubmit}
-                  disabled={
-                    isLoading ||
-                    !isStepValid(activeStep)
-                  }
+                  disabled={isLoading}
                   sx={{
                     px: 4,
                     py: 1,
                     position: "relative",
                   }}
+                  startIcon={<CheckIcon />}
                 >
                   {isLoading ? (
                     <>
@@ -794,7 +982,7 @@ const InstallPage = () => {
                   disabled={!isStepValid(activeStep)}
                   endIcon={<ArrowForwardIcon />}
                 >
-                  Next
+                  {activeStep === steps.length - 2 ? "Review" : "Next"}
                 </Button>
               )}
             </Box>
