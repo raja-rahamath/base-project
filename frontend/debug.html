@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Configuration Debug</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .debug-info {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #0066cc;
+            margin-top: 30px;
+        }
+        .key {
+            font-weight: bold;
+            color: #0066cc;
+        }
+        .value {
+            font-family: monospace;
+            background-color: #eef;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        button {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0055aa;
+        }
+    </style>
+</head>
+<body>
+    <h1>API Configuration Debug</h1>
+    
+    <div class="debug-info" id="configInfo">
+        <p>Loading configuration...</p>
+    </div>
+    
+    <div class="debug-info" id="envInfo">
+        <h2>Environment Variables</h2>
+        <p>Loading environment variables...</p>
+    </div>
+    
+    <div class="debug-info" id="connectionTest">
+        <h2>API Connection Test</h2>
+        <p id="connectionStatus">Not tested yet</p>
+        <button id="testButton">Test API Connection</button>
+    </div>
+
+    <script type="module">
+        // Import Vite environment variables
+        const envVars = import.meta.env;
+        
+        // Display config info
+        const configInfo = document.getElementById('configInfo');
+        configInfo.innerHTML = `
+            <h2>Current Configuration</h2>
+            <p><span class="key">VITE_API_URL:</span> <span class="value">${envVars.VITE_API_URL || 'Not set'}</span></p>
+            <p><span class="key">Default URL:</span> <span class="value">http://localhost:5000</span></p>
+            <p><span class="key">Actual URL used:</span> <span class="value">${envVars.VITE_API_URL || 'http://localhost:5000'}</span></p>
+            <p><span class="key">Current Time:</span> <span class="value">${new Date().toLocaleString()}</span></p>
+        `;
+        
+        // Display all environment variables
+        const envInfo = document.getElementById('envInfo');
+        let envHtml = '<h2>All Environment Variables</h2>';
+        
+        for (const key in envVars) {
+            if (key.startsWith('VITE_')) {
+                envHtml += `<p><span class="key">${key}:</span> <span class="value">${envVars[key]}</span></p>`;
+            }
+        }
+        
+        envInfo.innerHTML = envHtml || '<p>No VITE_ environment variables found</p>';
+        
+        // Setup connection test
+        const testButton = document.getElementById('testButton');
+        const connectionStatus = document.getElementById('connectionStatus');
+        
+        testButton.addEventListener('click', async () => {
+            connectionStatus.innerHTML = 'Testing connection...';
+            const apiUrl = envVars.VITE_API_URL || 'http://localhost:5000';
+            
+            try {
+                const timestamp = new Date().getTime();
+                const response = await fetch(`${apiUrl}/api/install?t=${timestamp}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const statusText = `
+                    <p><span class="key">Status:</span> <span class="value">${response.status} ${response.statusText}</span></p>
+                    <p><span class="key">URL used:</span> <span class="value">${response.url}</span></p>
+                `;
+                
+                if (response.ok) {
+                    connectionStatus.innerHTML = `
+                        <p style="color: green; font-weight: bold;">✓ Connection successful</p>
+                        ${statusText}
+                    `;
+                } else {
+                    connectionStatus.innerHTML = `
+                        <p style="color: orange; font-weight: bold;">⚠ Connected but received error response</p>
+                        ${statusText}
+                    `;
+                }
+            } catch (error) {
+                connectionStatus.innerHTML = `
+                    <p style="color: red; font-weight: bold;">✗ Connection failed</p>
+                    <p><span class="key">Error:</span> <span class="value">${error.message}</span></p>
+                    <p><span class="key">API URL attempted:</span> <span class="value">${apiUrl}</span></p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
