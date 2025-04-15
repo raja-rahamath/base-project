@@ -1,0 +1,72 @@
+# .gitignore for .NET, Node.js (Vite/React), and macOS
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.vs/
+TestResults/
+*.ncrunch*
+*.localhistory/
+*.vscode/
+*.DS_Store
+*.swp
+*.swo
+*.tmp
+*.log
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Entity Framework
+Migrations/
+
+# Rider
+.idea/
+*.sln.iml
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Node.js
+node_modules/
+dist/
+.env
+.env.*
+.npmrc
+
+# Vite
+.vite/
+
+# Log files
+logs/
+
+# Build output
+/build/
+
+# Coverage
+coverage/
+
+# Misc
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDEs
+*.code-workspace
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.*
+frontend/coverage/
+
+# Ignore local launch settings
+Properties/launchSettings.json
