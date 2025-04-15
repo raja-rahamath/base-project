@@ -1,10 +1,12 @@
 import React from "react";
-import { Box, AppBar, Toolbar, Typography, Container, useTheme } from "@mui/material";
+import { Box, AppBar, Toolbar, Typography, Container, useTheme, Button, Stack } from "@mui/material";
+import { Link as RouterLink, useLocation } from "react-router-dom";
 import Footer from "./Footer";
 import StorageIcon from '@mui/icons-material/Storage';
 
 const Layout = ({ children }) => {
   const theme = useTheme();
+  const location = useLocation();
 
   return (
     <Box
@@ -33,11 +35,14 @@ const Layout = ({ children }) => {
           />
           <Typography 
             variant="h6" 
-            component="div" 
+            component="div"
             sx={{ 
               flexGrow: 1,
               fontWeight: 600,
-              letterSpacing: '-0.5px'
+              letterSpacing: '-0.5px',
+              color: 'inherit',
+              display: 'flex',
+              alignItems: 'center'
             }}
           >
             RCode Database Manager

@@ -16,12 +16,17 @@ namespace api.Application.Services
     {
         private readonly ILogger<DatabaseService> _logger;
         private readonly IRepository<ConnectionConfig> _repository;
+        private readonly SaasSetupService _saasSetupService;
         private readonly string[] _supportedDatabaseTypes = { "MySQL", "Postgres", "MSSQL", "Oracle" };
         
-        public DatabaseService(ILogger<DatabaseService> logger, IRepository<ConnectionConfig> repository)
+        public DatabaseService(
+            ILogger<DatabaseService> logger, 
+            IRepository<ConnectionConfig> repository,
+            SaasSetupService saasSetupService)
         {
             _logger = logger;
             _repository = repository;
+            _saasSetupService = saasSetupService;
         }
 
         /// <inheritdoc />
@@ -85,6 +90,15 @@ namespace api.Application.Services
                 // Create database and user
                 await CreateDatabaseAndUserAsync(rootConnectionString, request);
 
+                // Set up SAAS tables
+                _logger.LogInformation("Setting up SAAS tables in database {Database}", request.DbName);
+                bool saasSetupSuccess = await _saasSetupService.SetupSaasTables(request);
+                
+                if (!saasSetupSuccess)
+                {
+                    _logger.LogWarning("Failed to set up SAAS tables in database {Database}, but database and user creation was successful", request.DbName);
+                }
+                
                 // Save the connection configuration
                 var config = new ConnectionConfig
                 {
@@ -99,7 +113,7 @@ namespace api.Application.Services
 
                 await _repository.AddAsync(config);
 
-                _logger.LogInformation("Successfully created database {Database} and user {User}", 
+                _logger.LogInformation("Successfully created database {Database} and user {User} with SAAS tables", 
                     request.DbName, request.AdminUser);
 
                 return true;

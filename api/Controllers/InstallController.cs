@@ -191,7 +191,16 @@ namespace api.Controllers
                     return Ok(ApiResponse<object>.SuccessResponse(
                         new { 
                             message = "Database and user created successfully",
-                            note = "If your password didn't meet MySQL's policy requirements, it may have been strengthened automatically. Please check the server logs for details."
+                            note = "If your password didn't meet MySQL's policy requirements, it may have been strengthened automatically. Please check the server logs for details.",
+                            saasTables = new {
+                                clients = "cor_clients",
+                                users = "cor_users_ref",
+                                plans = "cor_plans",
+                                clientPlans = "cor_client_plans",
+                                clientRenewals = "cor_client_renewals",
+                                paymentMethods = "cor_payment_methods"
+                            },
+                            defaultUrl = $"http://{request.ServiceIP}:{request.Port}/{request.DbName}"
                         }));
                 }
                 else

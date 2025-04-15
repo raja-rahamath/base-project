@@ -15,6 +15,8 @@ import {
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import InstallPage from "./pages/InstallPage";
+import RegisterPage from "./pages/RegisterPage";
+import LoginPage from "./pages/LoginPage";
 import Layout from "./components/Layout";
 import { lightTheme, darkTheme } from "./theme";
 import "./App.css";
@@ -74,8 +76,9 @@ function App() {
           </Box>
 
           <Routes>
-            <Route path="/" element={<Navigate to="/install" replace />} />
+            <Route path="/" element={<RegisterPage />} />
             <Route path="/install" element={<InstallPage />} />
+            <Route path="/login" element={<LoginPage />} />
             {/* Add more routes here as needed */}
           </Routes>
         </Layout>
