@@ -457,9 +457,9 @@ namespace api.Application.Services
             return $@"
                 INSERT INTO cor_plans (Id, Name, Description, MonthlyPrice, AnnualPrice, MaxUsers, MaxStorageGB, Features, IsActive, DisplayOrder)
                 VALUES 
-                ('{basicPlanId}', 'Basic', 'Essential features for small businesses', 19.99, 199.99, 5, 10, '{basicFeatures}', 1, 1),
-                ('{standardPlanId}', 'Standard', 'Advanced features for growing businesses', 49.99, 499.99, 20, 50, '{standardFeatures}', 1, 2),
-                ('{premiumPlanId}', 'Premium', 'Full features for enterprises', 99.99, 999.99, 100, 500, '{premiumFeatures}', 1, 3);
+                ('{basicPlanId}', 'Basic', 'Essential features for small businesses', 29.99, 299.99, 10, 5, '{basicFeatures}', 1, 1),
+                ('{standardPlanId}', 'Standard', 'Advanced features for growing businesses', 79.99, 799.99, 50, 25, '{standardFeatures}', 1, 2),
+                ('{premiumPlanId}', 'Premium', 'Full features for enterprises', 149.99, 1499.99, 100, 100, '{premiumFeatures}', 1, 3);
             ";
         }
         
@@ -628,9 +628,9 @@ namespace api.Application.Services
             return $@"
                 INSERT INTO cor_plans (""Id"", ""Name"", ""Description"", ""MonthlyPrice"", ""AnnualPrice"", ""MaxUsers"", ""MaxStorageGB"", ""Features"", ""IsActive"", ""DisplayOrder"")
                 VALUES 
-                ('{basicPlanId}', 'Basic', 'Essential features for small businesses', 19.99, 199.99, 5, 10, '{basicFeatures}', TRUE, 1),
-                ('{standardPlanId}', 'Standard', 'Advanced features for growing businesses', 49.99, 499.99, 20, 50, '{standardFeatures}', TRUE, 2),
-                ('{premiumPlanId}', 'Premium', 'Full features for enterprises', 99.99, 999.99, 100, 500, '{premiumFeatures}', TRUE, 3);
+                ('{basicPlanId}', 'Basic', 'Essential features for small businesses', 29.99, 299.99, 10, 5, '{basicFeatures}', TRUE, 1),
+                ('{standardPlanId}', 'Standard', 'Advanced features for growing businesses', 79.99, 799.99, 50, 25, '{standardFeatures}', TRUE, 2),
+                ('{premiumPlanId}', 'Premium', 'Full features for enterprises', 149.99, 1499.99, 100, 100, '{premiumFeatures}', TRUE, 3);
             ";
         }
         
@@ -819,9 +819,9 @@ namespace api.Application.Services
                 BEGIN
                     INSERT INTO cor_plans (Id, Name, Description, MonthlyPrice, AnnualPrice, MaxUsers, MaxStorageGB, Features, IsActive, DisplayOrder)
                     VALUES 
-                    ('{basicPlanId}', 'Basic', 'Essential features for small businesses', 19.99, 199.99, 5, 10, N'{basicFeatures}', 1, 1),
-                    ('{standardPlanId}', 'Standard', 'Advanced features for growing businesses', 49.99, 499.99, 20, 50, N'{standardFeatures}', 1, 2),
-                    ('{premiumPlanId}', 'Premium', 'Full features for enterprises', 99.99, 999.99, 100, 500, N'{premiumFeatures}', 1, 3);
+                    ('{basicPlanId}', 'Basic', 'Essential features for small businesses', 29.99, 299.99, 10, 5, N'{basicFeatures}', 1, 1),
+                    ('{standardPlanId}', 'Standard', 'Advanced features for growing businesses', 79.99, 799.99, 50, 25, N'{standardFeatures}', 1, 2),
+                    ('{premiumPlanId}', 'Premium', 'Full features for enterprises', 149.99, 1499.99, 100, 100, N'{premiumFeatures}', 1, 3);
                 END
             ";
         }

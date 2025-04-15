@@ -21,12 +21,23 @@ builder.Host.UseSerilog();
 
 // Add services to the container
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseInMemoryDatabase("ConnectionConfigDb"));
-    
+    options.UseMySql(
+        builder.Configuration.GetConnectionString("MasterConnection"),
+        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("MasterConnection"))
+    )
+);
+
 // Register repositories and services
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<SaasSetupService>();
 builder.Services.AddScoped<IDatabaseService, DatabaseService>();
+
+// Register a tenant provider and tenant DbContext factory for per-client database resolution
+builder.Services.AddScoped<TenantProvider>();
+builder.Services.AddScoped<ITenantProvider, TenantProvider>();
+builder.Services.AddScoped<TenantDbContextFactory>();
+builder.Services.AddScoped<ITenantDbContextFactory, TenantDbContextFactory>();
+builder.Services.AddHttpContextAccessor();
 
 // Add controllers
 builder.Services.AddControllers();

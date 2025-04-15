@@ -130,6 +130,12 @@ namespace api.Models
         /// </summary>
         [JsonPropertyName("preferredTheme")]
         public string? PreferredTheme { get; set; }
+        
+        /// <summary>
+        /// Optional flag to skip client plan creation (for testing)
+        /// </summary>
+        [JsonPropertyName("skipClientPlan")]
+        public bool? SkipClientPlan { get; set; }
     }
     
     /// <summary>
