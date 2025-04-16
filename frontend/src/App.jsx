@@ -19,13 +19,24 @@ import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
 import Layout from "./components/Layout";
 import { lightTheme, darkTheme } from "./theme";
+import { AuthProvider, useAuth } from "./auth";
+import BillingPage from "./pages/BillingPage";
+import PlanPage from "./pages/PlanPage";
+import ProfilePage from "./pages/ProfilePage";
+import DashboardPage from "./pages/DashboardPage";
 import "./App.css";
+
+function ProtectedRoute({ children }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
 
 function App() {
   // Use system preference as initial theme
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
   const [mode, setMode] = useState(prefersDarkMode ? "dark" : "light");
-  
+
   const theme = useMemo(
     () => (mode === "light" ? lightTheme : darkTheme),
     [mode]
@@ -38,8 +49,8 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router>
-        <Layout>
+      <AuthProvider>
+        <Router>
           <Box
             sx={{
               position: "fixed",
@@ -76,13 +87,30 @@ function App() {
           </Box>
 
           <Routes>
-            <Route path="/" element={<RegisterPage />} />
-            <Route path="/install" element={<InstallPage />} />
             <Route path="/login" element={<LoginPage />} />
-            {/* Add more routes here as needed */}
+            <Route path="/register" element={<RegisterPage />} />
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Routes>
+                      <Route path="/dashboard" element={<DashboardPage />} />
+                      <Route path="/billing" element={<BillingPage />} />
+                      <Route path="/plan" element={<PlanPage />} />
+                      <Route path="/profile" element={<ProfilePage />} />
+                      <Route
+                        path="*"
+                        element={<Navigate to="/dashboard" replace />}
+                      />
+                    </Routes>
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
           </Routes>
-        </Layout>
-      </Router>
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

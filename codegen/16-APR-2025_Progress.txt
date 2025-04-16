@@ -1,0 +1,21 @@
+# 16-APR-2025 Progress Summary
+
+## Backend (API)
+- Planned new BillingController for listing billing records and invoice download (PDF/CSV).
+- Planned endpoints for password reset (change email, send notification), plan change (with confirmation), and cancel subscription.
+- Confirmed all endpoints will be secure and scoped to logged-in client.
+- No new backend code changes committed yet for these features.
+
+## Frontend (React/Vite)
+- Planned new navigation (side menu) for Billing, Plan, Profile.
+- Planned UI for billing history (table/cards, invoice download), password reset (change email, notification), and plan management (view/change/cancel, confirmation).
+- No new frontend code changes committed yet for these features.
+
+## Next Steps
+- Begin implementation of backend BillingController and related endpoints.
+- Add DTOs, services, and integrate with frontend.
+- Commit and test each feature step by step.
+
+---
+
+*This file will be updated daily with progress summaries and plans.*

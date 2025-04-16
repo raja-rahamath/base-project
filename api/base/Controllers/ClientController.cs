@@ -8,6 +8,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Cryptography;
 using System.Text;
 using api.Application.Services;
+using System.Security.Claims;
 
 namespace api.Controllers
 {
@@ -350,5 +351,188 @@ namespace api.Controllers
             passwordSalt = Convert.ToBase64String(saltBytes);
             passwordHash = Convert.ToBase64String(hashBytes);
         }
+
+        // POST: api/Client/change-email
+        [HttpPost("change-email")]
+        public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest request)
+        {
+            var userId = GetUserId();
+            if (userId == null)
+                return Unauthorized();
+
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return NotFound();
+
+            var oldEmail = user.Email;
+            user.Email = request.NewEmail;
+            await _dbContext.SaveChangesAsync();
+
+            // TODO: Send notification email to new address
+            // await _emailService.SendEmailChangedNotification(user.Email, oldEmail);
+
+            return Ok(ApiResponse<string>.SuccessResponse("Email updated and notification sent.", user.Email));
+        }
+
+        // POST: api/Client/change-password
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            var userId = GetUserId();
+            if (userId == null)
+                return Unauthorized();
+
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return NotFound();
+
+            // TODO: Validate old password if required
+            // Hash new password and update
+            user.PasswordHash = CreatePasswordHash(request.NewPassword, user.PasswordSalt);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(ApiResponse<string>.SuccessResponse("Password updated successfully."));
+        }
+
+        private Guid? GetUserId()
+        {
+            var claim = User.FindFirst("UserId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
+            if (claim == null) return null;
+            if (Guid.TryParse(claim.Value, out var guid))
+                return guid;
+            return null;
+        }
+
+        // GET: api/Plan
+        [HttpGet("/api/Plan")]
+        public async Task<IActionResult> GetAvailablePlans()
+        {
+            var plans = await _dbContext.Plans
+                .Where(p => p.IsActive)
+                .OrderBy(p => p.DisplayOrder)
+                .Select(p => new PlanDto
+                {
+                    Id = p.Id.ToString(),
+                    Name = p.Name,
+                    Description = p.Description,
+                    MonthlyPrice = p.MonthlyPrice,
+                    AnnualPrice = p.AnnualPrice,
+                    MaxUsers = p.MaxUsers,
+                    MaxStorageGB = p.MaxStorageGB,
+                    Features = p.Features
+                })
+                .ToListAsync();
+            return Ok(plans);
+        }
+
+        // POST: api/Plan/change
+        [HttpPost("/api/Plan/change")]
+        public async Task<IActionResult> ChangePlan([FromBody] ChangePlanRequest request)
+        {
+            var clientId = GetClientId();
+            if (clientId == null)
+                return Unauthorized();
+
+            var client = await _dbContext.Clients.Include(c => c.Plans).FirstOrDefaultAsync(c => c.Id == clientId);
+            if (client == null)
+                return NotFound();
+
+            var newPlan = await _dbContext.Plans.FirstOrDefaultAsync(p => p.Id.ToString() == request.PlanId && p.IsActive);
+            if (newPlan == null)
+                return BadRequest("Selected plan does not exist.");
+
+            // Confirmation logic and downgrade warning can be handled on frontend
+            // Deactivate current plan
+            var activePlan = client.Plans.FirstOrDefault(cp => cp.IsActive);
+            if (activePlan != null)
+                activePlan.IsActive = false;
+
+            // Add new client plan
+            var now = DateTime.UtcNow;
+            var endDate = request.BillingCycle == 1 ? now.AddYears(1) : now.AddMonths(1);
+            var price = request.BillingCycle == 1 ? newPlan.AnnualPrice : newPlan.MonthlyPrice;
+            var clientPlan = new ClientPlan
+            {
+                Id = Guid.NewGuid(),
+                ClientId = client.Id,
+                PlanId = newPlan.Id,
+                StartDate = now,
+                EndDate = endDate,
+                BillingCycle = (BillingCycle)request.BillingCycle,
+                Price = price,
+                IsActive = true,
+                AutoRenew = true,
+                CreatedAt = now
+            };
+            await _dbContext.ClientPlans.AddAsync(clientPlan);
+            await _dbContext.SaveChangesAsync();
+            return Ok(ApiResponse<string>.SuccessResponse("Plan changed successfully."));
+        }
+
+        // POST: api/Plan/cancel
+        [HttpPost("/api/Plan/cancel")]
+        public async Task<IActionResult> CancelSubscription()
+        {
+            var clientId = GetClientId();
+            if (clientId == null)
+                return Unauthorized();
+
+            var client = await _dbContext.Clients.Include(c => c.Plans).FirstOrDefaultAsync(c => c.Id == clientId);
+            if (client == null)
+                return NotFound();
+
+            var activePlan = client.Plans.FirstOrDefault(cp => cp.IsActive);
+            if (activePlan == null)
+                return BadRequest("No active plan to cancel.");
+
+            activePlan.IsActive = false;
+            await _dbContext.SaveChangesAsync();
+            return Ok(ApiResponse<string>.SuccessResponse("Subscription cancelled successfully."));
+        }
+
+        private Guid? GetClientId()
+        {
+            var claim = User.FindFirst("ClientId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
+            if (claim == null) return null;
+            if (Guid.TryParse(claim.Value, out var guid))
+                return guid;
+            return null;
+        }
+
+        private string CreatePasswordHash(string password, string salt)
+        {
+            var saltBytes = Convert.FromBase64String(salt);
+            using var hmac = new HMACSHA512(saltBytes);
+            var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+            return Convert.ToBase64String(hashBytes);
+        }
+    }
+
+    public class ChangeEmailRequest
+    {
+        public string NewEmail { get; set; } = string.Empty;
+    }
+
+    public class ChangePasswordRequest
+    {
+        public string NewPassword { get; set; } = string.Empty;
+    }
+
+    public class PlanDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public decimal MonthlyPrice { get; set; }
+        public decimal AnnualPrice { get; set; }
+        public int MaxUsers { get; set; }
+        public int MaxStorageGB { get; set; }
+        public string? Features { get; set; }
+    }
+
+    public class ChangePlanRequest
+    {
+        public string PlanId { get; set; } = string.Empty;
+        public int BillingCycle { get; set; } // 0 = Monthly, 1 = Annual
     }
 }

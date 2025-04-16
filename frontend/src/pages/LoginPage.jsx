@@ -13,44 +13,51 @@ import {
   Divider,
   Stack,
 } from "@mui/material";
-import { Visibility, VisibilityOff, Login as LoginIcon } from "@mui/icons-material";
+import {
+  Visibility,
+  VisibilityOff,
+  Login as LoginIcon,
+} from "@mui/icons-material";
 import config from "../config";
+import { useAuth } from "../auth.jsx";
 
 const LoginPage = () => {
   // Form state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  
+
   // Validation errors
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  
+
   // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  
+
+  const { login } = useAuth();
+
   // Toggle password visibility
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
-  
+
   // Handle form input changes
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
     setEmailError("");
   };
-  
+
   const handlePasswordChange = (e) => {
     setPassword(e.target.value);
     setPasswordError("");
   };
-  
+
   // Validate form
   const validateForm = () => {
     let isValid = true;
-    
+
     if (!email) {
       setEmailError("Email is required");
       isValid = false;
@@ -58,42 +65,42 @@ const LoginPage = () => {
       setEmailError("Invalid email address");
       isValid = false;
     }
-    
+
     if (!password) {
       setPasswordError("Password is required");
       isValid = false;
     }
-    
+
     return isValid;
   };
-  
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setIsLoading(true);
     setError("");
     setSuccess("");
-    
+
     try {
-      // Call login API endpoint (not implemented yet)
-      console.log("Sending login request to:", `${config.apiUrl}/api/auth/login`);
-      
-      // Mock login (replace with actual API call)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // If login successful:
+      // Call login API endpoint (replace with actual API call)
+      // Example: const res = await fetch(`${config.apiUrl}/api/auth/login`, { method: "POST", body: JSON.stringify({ email, password }) });
+      // const userData = await res.json();
+      // For now, mock userData:
+      const userData = { email };
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       setSuccess("Login successful! Redirecting...");
-      
+      login(userData); // Set user in AuthContext
+
       // Redirect to dashboard after short delay
       setTimeout(() => {
         window.location.href = "/dashboard";
-      }, 1500);
-      
+      }, 500);
     } catch (error) {
       console.error("Login error:", error);
       setError(error.message || "Login failed. Please check your credentials.");
@@ -101,11 +108,18 @@ const LoginPage = () => {
       setIsLoading(false);
     }
   };
-  
+
   return (
     <Container maxWidth="sm" sx={{ py: 8 }}>
       <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mb: 4 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            mb: 4,
+          }}
+        >
           <LoginIcon color="primary" sx={{ fontSize: 48, mb: 2 }} />
           <Typography variant="h4" component="h1" gutterBottom>
             Sign In
@@ -114,19 +128,23 @@ const LoginPage = () => {
             Sign in to access your organization's dashboard
           </Typography>
         </Box>
-        
+
         {error && (
           <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError("")}>
             {error}
           </Alert>
         )}
-        
+
         {success && (
-          <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess("")}>
+          <Alert
+            severity="success"
+            sx={{ mb: 3 }}
+            onClose={() => setSuccess("")}
+          >
             {success}
           </Alert>
         )}
-        
+
         <form onSubmit={handleSubmit}>
           <Stack spacing={3}>
             <TextField
@@ -140,7 +158,7 @@ const LoginPage = () => {
               required
               autoFocus
             />
-            
+
             <TextField
               fullWidth
               label="Password"
@@ -160,7 +178,7 @@ const LoginPage = () => {
                 ),
               }}
             />
-            
+
             <Button
               type="submit"
               fullWidth
@@ -190,15 +208,15 @@ const LoginPage = () => {
             </Button>
           </Stack>
         </form>
-        
+
         <Box sx={{ mt: 3, textAlign: "center" }}>
           <Button variant="text" sx={{ textTransform: "none" }}>
             Forgot password?
           </Button>
         </Box>
-        
+
         <Divider sx={{ my: 3 }} />
-        
+
         <Box sx={{ textAlign: "center" }}>
           <Typography variant="body2" color="text.secondary" gutterBottom>
             Don't have an account yet?

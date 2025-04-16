@@ -19,6 +19,7 @@ namespace api.Infrastructure.Data
         public DbSet<ClientPlan> ClientPlans { get; set; }
         public DbSet<ClientRenewal> ClientRenewals { get; set; }
         public DbSet<PaymentMethod> PaymentMethods { get; set; }
+        public DbSet<BillingRecord> BillingRecords { get; set; }
         
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -63,6 +64,11 @@ namespace api.Infrastructure.Data
                 entity.HasMany(c => c.Renewals)
                       .WithOne(cr => cr.Client)
                       .HasForeignKey(cr => cr.ClientId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                
+                entity.HasMany(c => c.BillingRecords)
+                      .WithOne(br => br.Client)
+                      .HasForeignKey(br => br.ClientId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
             
@@ -138,6 +144,25 @@ namespace api.Infrastructure.Data
                 entity.Property(e => e.Type).IsRequired();
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
                 entity.Property(e => e.IsDefault).HasDefaultValue(false);
+            });
+            
+            // BillingRecord entity
+            modelBuilder.Entity<BillingRecord>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.Amount).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.Currency).HasMaxLength(10).IsRequired();
+                entity.Property(e => e.InvoiceNumber).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.Status).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(255);
+                entity.Property(e => e.PaymentMethod).HasMaxLength(50);
+                entity.Property(e => e.Notes).HasMaxLength(255);
+                entity.HasIndex(e => e.InvoiceNumber).IsUnique();
+                entity.HasOne(e => e.Client)
+                      .WithMany(c => c.BillingRecords)
+                      .HasForeignKey(e => e.ClientId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

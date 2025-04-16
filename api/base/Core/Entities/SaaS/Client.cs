@@ -117,6 +117,11 @@ namespace api.Core.Entities.SaaS
         /// Navigation property for client renewals
         /// </summary>
         public virtual ICollection<ClientRenewal> Renewals { get; set; } = new List<ClientRenewal>();
+        
+        /// <summary>
+        /// Navigation property for billing records
+        /// </summary>
+        public virtual ICollection<BillingRecord> BillingRecords { get; set; } = new List<BillingRecord>();
     }
     
     /// <summary>

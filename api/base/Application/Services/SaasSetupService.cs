@@ -79,6 +79,7 @@ namespace api.Application.Services
                 "mysql" => await CreateMySqlTables(connectionString),
                 "postgres" => await CreatePostgresTables(connectionString),
                 "mssql" => await CreateMsSqlTables(connectionString),
+                "oracle" => await CreateOracleTables(connectionString),
                 _ => throw new ArgumentException($"Unsupported database type: {dbType}")
             };
         }
@@ -130,6 +131,13 @@ namespace api.Application.Services
                 {
                     await command.ExecuteNonQueryAsync();
                     _logger.LogInformation("Created cor_payment_methods table");
+                }
+                
+                // Create billing_records table
+                using (var command = new MySqlCommand(GetMySqlBillingRecordsTableSql(), connection))
+                {
+                    await command.ExecuteNonQueryAsync();
+                    _logger.LogInformation("Created cor_billing_records table");
                 }
                 
                 // Insert default plan
@@ -274,6 +282,85 @@ namespace api.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating MS SQL tables");
+                return false;
+            }
+        }
+        
+        private async Task<bool> CreateOracleTables(string connectionString)
+        {
+            using var connection = new Oracle.ManagedDataAccess.Client.OracleConnection(connectionString);
+            await connection.OpenAsync();
+            try
+            {
+                // Create clients table
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = GetOracleClientsTableSql();
+                    await command.ExecuteNonQueryAsync();
+                    _logger.LogInformation("Created cor_clients table (Oracle)");
+                }
+                
+                // Create users_ref table
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = GetOracleUsersRefTableSql();
+                    await command.ExecuteNonQueryAsync();
+                    _logger.LogInformation("Created cor_users_ref table (Oracle)");
+                }
+                
+                // Create plans table
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = GetOraclePlansTableSql();
+                    await command.ExecuteNonQueryAsync();
+                    _logger.LogInformation("Created cor_plans table (Oracle)");
+                }
+                
+                // Create client_plans table
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = GetOracleClientPlansTableSql();
+                    await command.ExecuteNonQueryAsync();
+                    _logger.LogInformation("Created cor_client_plans table (Oracle)");
+                }
+                
+                // Create client_renewals table
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = GetOracleClientRenewalsTableSql();
+                    await command.ExecuteNonQueryAsync();
+                    _logger.LogInformation("Created cor_client_renewals table (Oracle)");
+                }
+                
+                // Create payment_methods table
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = GetOraclePaymentMethodsTableSql();
+                    await command.ExecuteNonQueryAsync();
+                    _logger.LogInformation("Created cor_payment_methods table (Oracle)");
+                }
+                
+                // Create billing_records table
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = GetOracleBillingRecordsTableSql();
+                    await command.ExecuteNonQueryAsync();
+                    _logger.LogInformation("Created cor_billing_records table (Oracle)");
+                }
+                
+                // Insert default plan
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = GetOracleDefaultPlanSql();
+                    await command.ExecuteNonQueryAsync();
+                    _logger.LogInformation("Inserted default plans (Oracle)");
+                }
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating Oracle tables");
                 return false;
             }
         }
@@ -441,6 +528,28 @@ namespace api.Application.Services
                         REFERENCES `cor_clients` (`Id`)
                         ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ";
+        }
+        
+        private string GetMySqlBillingRecordsTableSql()
+        {
+            return @"
+                CREATE TABLE IF NOT EXISTS cor_billing_records (
+                    Id CHAR(36) NOT NULL PRIMARY KEY,
+                    ClientId CHAR(36) NOT NULL,
+                    InvoiceNumber VARCHAR(50) NOT NULL UNIQUE,
+                    Amount DECIMAL(18,2) NOT NULL,
+                    Currency VARCHAR(10) NOT NULL,
+                    BillingPeriodStart DATETIME NOT NULL,
+                    BillingPeriodEnd DATETIME NOT NULL,
+                    Status INT NOT NULL,
+                    Description VARCHAR(255),
+                    CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    PaidAt DATETIME,
+                    PaymentMethod VARCHAR(50),
+                    Notes VARCHAR(255),
+                    CONSTRAINT FK_Billing_Client FOREIGN KEY (ClientId) REFERENCES cor_clients(Id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
             ";
         }
         
@@ -823,6 +932,243 @@ namespace api.Application.Services
                     ('{standardPlanId}', 'Standard', 'Advanced features for growing businesses', 79.99, 799.99, 50, 25, N'{standardFeatures}', 1, 2),
                     ('{premiumPlanId}', 'Premium', 'Full features for enterprises', 149.99, 1499.99, 100, 100, N'{premiumFeatures}', 1, 3);
                 END
+            ";
+        }
+        
+        private string GetOracleClientsTableSql()
+        {
+            return @"
+                BEGIN
+                    EXECUTE IMMEDIATE 'CREATE TABLE cor_clients (
+                        Id VARCHAR2(36) NOT NULL PRIMARY KEY,
+                        CompanyName VARCHAR2(100) NOT NULL,
+                        VatNumber VARCHAR2(50) NULL,
+                        CountryCode VARCHAR2(2) NOT NULL,
+                        BillingAddressLine1 VARCHAR2(100) NULL,
+                        BillingAddressLine2 VARCHAR2(100) NULL,
+                        City VARCHAR2(50) NULL,
+                        State VARCHAR2(50) NULL,
+                        PostalCode VARCHAR2(20) NULL,
+                        Email VARCHAR2(100) NOT NULL,
+                        Phone VARCHAR2(20) NULL,
+                        Website VARCHAR2(100) NULL,
+                        Status NUMBER(10) NOT NULL DEFAULT 0,
+                        DomainUrl VARCHAR2(100) NULL,
+                        DatabaseName VARCHAR2(50) NULL,
+                        Notes VARCHAR2(1000) NULL,
+                        CreatedAt DATE DEFAULT SYSDATE NOT NULL
+                    )';
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        IF SQLCODE != -955 THEN -- ORA-00955: name is already used by an existing object
+                            RAISE;
+                        END IF;
+                END;
+            ";
+        }
+        
+        private string GetOracleUsersRefTableSql()
+        {
+            return @"
+                BEGIN
+                    EXECUTE IMMEDIATE 'CREATE TABLE cor_users_ref (
+                        Id VARCHAR2(36) NOT NULL PRIMARY KEY,
+                        ClientId VARCHAR2(36) NOT NULL,
+                        FirstName VARCHAR2(50) NOT NULL,
+                        LastName VARCHAR2(50) NOT NULL,
+                        Email VARCHAR2(100) NOT NULL,
+                        Phone VARCHAR2(20) NULL,
+                        Role NUMBER(10) NOT NULL DEFAULT 0,
+                        PasswordHash VARCHAR2(100) NOT NULL,
+                        PasswordSalt VARCHAR2(50) NOT NULL,
+                        IsActive NUMBER(1) NOT NULL DEFAULT 1,
+                        LastLoginAt DATE NULL,
+                        PreferredLanguage VARCHAR2(10) NOT NULL DEFAULT ''en-US'',
+                        PreferredTheme VARCHAR2(20) NOT NULL DEFAULT ''light'',
+                        CreatedAt DATE DEFAULT SYSDATE NOT NULL,
+                        CONSTRAINT FK_cor_users_ref_cor_clients_ClientId FOREIGN KEY (ClientId) REFERENCES cor_clients(Id) ON DELETE CASCADE
+                    )';
+                    EXECUTE IMMEDIATE 'CREATE UNIQUE INDEX IX_cor_users_ref_Email ON cor_users_ref (Email)';
+                    EXECUTE IMMEDIATE 'CREATE INDEX IX_cor_users_ref_ClientId ON cor_users_ref (ClientId)';
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        IF SQLCODE != -955 THEN -- ORA-00955: name is already used by an existing object
+                            RAISE;
+                        END IF;
+                END;
+            ";
+        }
+        
+        private string GetOraclePlansTableSql()
+        {
+            return @"
+                BEGIN
+                    EXECUTE IMMEDIATE 'CREATE TABLE cor_plans (
+                        Id VARCHAR2(36) NOT NULL PRIMARY KEY,
+                        Name VARCHAR2(50) NOT NULL,
+                        Description VARCHAR2(500) NULL,
+                        MonthlyPrice NUMBER(18,2) NOT NULL,
+                        AnnualPrice NUMBER(18,2) NOT NULL,
+                        MaxUsers NUMBER(10) NOT NULL DEFAULT 0,
+                        MaxStorageGB NUMBER(10) NOT NULL DEFAULT 0,
+                        Features VARCHAR2(1000) NULL,
+                        IsActive NUMBER(1) NOT NULL DEFAULT 1,
+                        DisplayOrder NUMBER(10) NOT NULL DEFAULT 0,
+                        CreatedAt DATE DEFAULT SYSDATE NOT NULL
+                    )';
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        IF SQLCODE != -955 THEN -- ORA-00955: name is already used by an existing object
+                            RAISE;
+                        END IF;
+                END;
+            ";
+        }
+        
+        private string GetOracleClientPlansTableSql()
+        {
+            return @"
+                BEGIN
+                    EXECUTE IMMEDIATE 'CREATE TABLE cor_client_plans (
+                        Id VARCHAR2(36) NOT NULL PRIMARY KEY,
+                        ClientId VARCHAR2(36) NOT NULL,
+                        PlanId VARCHAR2(36) NOT NULL,
+                        StartDate DATE NOT NULL,
+                        EndDate DATE NOT NULL,
+                        BillingCycle NUMBER(10) NOT NULL DEFAULT 0,
+                        Price NUMBER(18,2) NOT NULL,
+                        IsActive NUMBER(1) NOT NULL DEFAULT 1,
+                        AutoRenew NUMBER(1) NOT NULL DEFAULT 1,
+                        Notes VARCHAR2(500) NULL,
+                        CreatedAt DATE DEFAULT SYSDATE NOT NULL,
+                        CONSTRAINT FK_cor_client_plans_cor_clients_ClientId FOREIGN KEY (ClientId) REFERENCES cor_clients(Id) ON DELETE CASCADE,
+                        CONSTRAINT FK_cor_client_plans_cor_plans_PlanId FOREIGN KEY (PlanId) REFERENCES cor_plans(Id) ON DELETE RESTRICT
+                    )';
+                    EXECUTE IMMEDIATE 'CREATE INDEX IX_cor_client_plans_ClientId ON cor_client_plans (ClientId)';
+                    EXECUTE IMMEDIATE 'CREATE INDEX IX_cor_client_plans_PlanId ON cor_client_plans (PlanId)';
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        IF SQLCODE != -955 THEN -- ORA-00955: name is already used by an existing object
+                            RAISE;
+                        END IF;
+                END;
+            ";
+        }
+        
+        private string GetOracleClientRenewalsTableSql()
+        {
+            return @"
+                BEGIN
+                    EXECUTE IMMEDIATE 'CREATE TABLE cor_client_renewals (
+                        Id VARCHAR2(36) NOT NULL PRIMARY KEY,
+                        ClientId VARCHAR2(36) NOT NULL,
+                        ClientPlanId VARCHAR2(36) NOT NULL,
+                        PreviousEndDate DATE NOT NULL,
+                        NewStartDate DATE NOT NULL,
+                        NewEndDate DATE NOT NULL,
+                        Amount NUMBER(18,2) NOT NULL,
+                        PaymentDate DATE NULL,
+                        PaymentMethod VARCHAR2(50) NULL,
+                        TransactionReference VARCHAR2(100) NULL,
+                        Status NUMBER(10) NOT NULL DEFAULT 0,
+                        Notes VARCHAR2(500) NULL,
+                        CreatedAt DATE DEFAULT SYSDATE NOT NULL,
+                        CONSTRAINT FK_cor_client_renewals_cor_clients_ClientId FOREIGN KEY (ClientId) REFERENCES cor_clients(Id) ON DELETE CASCADE,
+                        CONSTRAINT FK_cor_client_renewals_cor_client_plans_ClientPlanId FOREIGN KEY (ClientPlanId) REFERENCES cor_client_plans(Id) ON DELETE CASCADE
+                    )';
+                    EXECUTE IMMEDIATE 'CREATE INDEX IX_cor_client_renewals_ClientId ON cor_client_renewals (ClientId)';
+                    EXECUTE IMMEDIATE 'CREATE INDEX IX_cor_client_renewals_ClientPlanId ON cor_client_renewals (ClientPlanId)';
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        IF SQLCODE != -955 THEN -- ORA-00955: name is already used by an existing object
+                            RAISE;
+                        END IF;
+                END;
+            ";
+        }
+        
+        private string GetOraclePaymentMethodsTableSql()
+        {
+            return @"
+                BEGIN
+                    EXECUTE IMMEDIATE 'CREATE TABLE cor_payment_methods (
+                        Id VARCHAR2(36) NOT NULL PRIMARY KEY,
+                        ClientId VARCHAR2(36) NOT NULL,
+                        Type NUMBER(10) NOT NULL DEFAULT 0,
+                        Last4 VARCHAR2(4) NULL,
+                        CardBrand VARCHAR2(20) NULL,
+                        ExpiryMonth NUMBER(10) NULL,
+                        ExpiryYear NUMBER(10) NULL,
+                        CardholderName VARCHAR2(100) NULL,
+                        Token VARCHAR2(500) NULL,
+                        IsDefault NUMBER(1) NOT NULL DEFAULT 0,
+                        IsActive NUMBER(1) NOT NULL DEFAULT 1,
+                        Notes VARCHAR2(500) NULL,
+                        CreatedAt DATE DEFAULT SYSDATE NOT NULL,
+                        CONSTRAINT FK_cor_payment_methods_cor_clients_ClientId FOREIGN KEY (ClientId) REFERENCES cor_clients(Id) ON DELETE CASCADE
+                    )';
+                    EXECUTE IMMEDIATE 'CREATE INDEX IX_cor_payment_methods_ClientId ON cor_payment_methods (ClientId)';
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        IF SQLCODE != -955 THEN -- ORA-00955: name is already used by an existing object
+                            RAISE;
+                        END IF;
+                END;
+            ";
+        }
+        
+        private string GetOracleBillingRecordsTableSql()
+        {
+            return @"
+                BEGIN
+                    EXECUTE IMMEDIATE 'CREATE TABLE cor_billing_records (
+                        Id VARCHAR2(36) NOT NULL PRIMARY KEY,
+                        ClientId VARCHAR2(36) NOT NULL,
+                        InvoiceNumber VARCHAR2(50) NOT NULL UNIQUE,
+                        Amount NUMBER(18,2) NOT NULL,
+                        Currency VARCHAR2(10) NOT NULL,
+                        BillingPeriodStart DATE NOT NULL,
+                        BillingPeriodEnd DATE NOT NULL,
+                        Status NUMBER(10) NOT NULL,
+                        Description VARCHAR2(255),
+                        CreatedAt DATE DEFAULT SYSDATE NOT NULL,
+                        PaidAt DATE,
+                        PaymentMethod VARCHAR2(50),
+                        Notes VARCHAR2(255),
+                        CONSTRAINT FK_Billing_Client FOREIGN KEY (ClientId) REFERENCES cor_clients(Id) ON DELETE CASCADE
+                    )';
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        IF SQLCODE != -955 THEN -- ORA-00955: name is already used by an existing object
+                            RAISE;
+                        END IF;
+                END;
+            ";
+        }
+        
+        private string GetOracleDefaultPlanSql()
+        {
+            Guid basicPlanId = Guid.NewGuid();
+            Guid standardPlanId = Guid.NewGuid();
+            Guid premiumPlanId = Guid.NewGuid();
+            
+            string basicFeatures = "{\"feature1\": true, \"feature2\": true, \"feature3\": false, \"feature4\": false}";
+            string standardFeatures = "{\"feature1\": true, \"feature2\": true, \"feature3\": true, \"feature4\": false}";
+            string premiumFeatures = "{\"feature1\": true, \"feature2\": true, \"feature3\": true, \"feature4\": true}";
+            
+            return $@"
+                BEGIN
+                    EXECUTE IMMEDIATE 'INSERT INTO cor_plans (Id, Name, Description, MonthlyPrice, AnnualPrice, MaxUsers, MaxStorageGB, Features, IsActive, DisplayOrder)
+                    VALUES 
+                    (''{basicPlanId}'', ''Basic'', ''Essential features for small businesses'', 29.99, 299.99, 10, 5, ''{basicFeatures}'', 1, 1),
+                    (''{standardPlanId}'', ''Standard'', ''Advanced features for growing businesses'', 79.99, 799.99, 50, 25, ''{standardFeatures}'', 1, 2),
+                    (''{premiumPlanId}'', ''Premium'', ''Full features for enterprises'', 149.99, 1499.99, 100, 100, ''{premiumFeatures}'', 1, 3)';
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        IF SQLCODE != -955 THEN -- ORA-00955: name is already used by an existing object
+                            RAISE;
+                        END IF;
+                END;
             ";
         }
         
